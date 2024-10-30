@@ -1,16 +1,57 @@
-name: Deploy Docker Image
+# Ce workflow utilise des actions qui ne sont pas certifiées par GitHub.
+# Elles sont fournies par un tiers et régies par
+# des conditions d'utilisation du service, une politique de confidentialité et un support distincts.
+# documentation en ligne.
 
-on:
-  push:
-    branches:
-      - main
+# GitHub recommande d'épingler les actions à un SHA de commit.
+# Pour obtenir une version plus récente, vous devez mettre à jour le SHA.
+# Vous pouvez également référencer une balise ou une branche, mais l'action peut changer sans avertissement.
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+nom : Publier l'image Docker
 
-    steps:
-      - name: Deploy Docker container
-        run: |
-          docker pull ghcr.io/${{ github.repository }}/vote-app:latest
-          docker run -d -p 80:80 ghcr.io/${{ github.repository }}/vote-app:latest
+sur:
+  libérer:
+    types : [publié]
+
+emplois:
+  pousser vers le registre :
+    nom : Envoyer l'image Docker vers Docker Hub
+    fonctionne sur : ubuntu-latest
+    autorisations:
+      paquets : écrire
+      Contenu : lire
+      attestations : écrire
+      id-token: écriture
+    mesures:
+      - nom : Consultez le dépôt
+        utilisations : actions/checkout@v4
+
+      - nom : Connectez-vous à Docker Hub
+        utilisations : docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
+        avec:
+          nom d'utilisateur : ${{ secrets.DOCKER_USERNAME }}
+          mot de passe : ${{ secrets.DOCKER_PASSWORD }}
+
+      - nom : Extraire les métadonnées (tags, étiquettes) pour Docker
+        identifiant: méta
+        utilisations : docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        avec:
+          images : mon-espace-de-noms-docker-hub/mon-référentiel-docker-hub
+
+      - nom : créer et envoyer l'image Docker
+        identifiant : pousser
+        utilisations : docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
+        avec:
+          contexte: .
+          fichier: ./Dockerfile
+          pousser: vrai
+          balises : ${{ steps.meta.outputs.tags }}
+          étiquettes : ${{ steps.meta.outputs.labels }}
+
+      - nom : Générer une attestation d'artefact
+        utilisations : actions/attest-build-provenance@v1
+        avec:
+          nom-sujet : ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
+          sujet-digest : ${{ steps.push.outputs.digest }}
+          push-to-registry: vrai
+
