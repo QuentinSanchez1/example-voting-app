@@ -1,0 +1,16 @@
+name: Deploy Docker Image
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy Docker container
+        run: |
+          docker pull ghcr.io/${{ github.repository }}/vote-app:latest
+          docker run -d -p 80:80 ghcr.io/${{ github.repository }}/vote-app:latest
