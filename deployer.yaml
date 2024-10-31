@@ -1,0 +1,26 @@
+name: Deploy to Server
+
+on:
+  workflow_run:
+    workflows: ["Create and publish a Docker image"]
+    types: [completed]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+    - name: Install SSH key
+      uses: webfactory/ssh-agent@v0.5.3
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+        ssh-known-hosts: ${{ secrets.SERVER_IP }}
+
+    - name: Pull and Deploy with Docker Compose
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "
+          cd example-voting-app && \
+          docker-compose pull && \
+          docker-compose up -d
+          "
