@@ -15,7 +15,7 @@ jobs:
       uses: webfactory/ssh-agent@v0.5.3
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-        ssh-known-hosts: ${{ secrets.SERVER_IP }}
+        ssh-host: ${{ secrets.SERVER_IP }}
 
     - name: Pull and Deploy with Docker Compose
       run: |
