@@ -1,57 +1,41 @@
-# Ce workflow utilise des actions qui ne sont pas certifiées par GitHub.
-# Elles sont fournies par un tiers et régies par
-# des conditions d'utilisation du service, une politique de confidentialité et un support distincts.
-# documentation en ligne.
+name: Create and publish a Docker image
 
-# GitHub recommande d'épingler les actions à un SHA de commit.
-# Pour obtenir une version plus récente, vous devez mettre à jour le SHA.
-# Vous pouvez également référencer une balise ou une branche, mais l'action peut changer sans avertissement.
+on:
+  push:
 
-nom : Publier l'image Docker
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: vote-app
 
-sur:
-  libérer:
-    types : [publié]
+jobs:
+  build-and-publish-image:
+    runs-on: ubuntu-latest
 
-emplois:
-  pousser vers le registre :
-    nom : Envoyer l'image Docker vers Docker Hub
-    fonctionne sur : ubuntu-latest
-    autorisations:
-      paquets : écrire
-      Contenu : lire
-      attestations : écrire
-      id-token: écriture
-    mesures:
-      - nom : Consultez le dépôt
-        utilisations : actions/checkout@v4
+    permissions:
+      contents: read
+      packages: write
 
-      - nom : Connectez-vous à Docker Hub
-        utilisations : docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
-        avec:
-          nom d'utilisateur : ${{ secrets.DOCKER_USERNAME }}
-          mot de passe : ${{ secrets.DOCKER_PASSWORD }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - nom : Extraire les métadonnées (tags, étiquettes) pour Docker
-        identifiant: méta
-        utilisations : docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
-        avec:
-          images : mon-espace-de-noms-docker-hub/mon-référentiel-docker-hub
+      - name: Log in to the Container registry
+        uses: docker/login-action@65b78e6e13532edd9afa3aa52ac7964289d1a9c1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - nom : créer et envoyer l'image Docker
-        identifiant : pousser
-        utilisations : docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
-        avec:
-          contexte: .
-          fichier: ./Dockerfile
-          pousser: vrai
-          balises : ${{ steps.meta.outputs.tags }}
-          étiquettes : ${{ steps.meta.outputs.labels }}
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: ${{ env.REGISTRY }}/quentinsanchez1/${{ env.IMAGE_NAME }}
 
-      - nom : Générer une attestation d'artefact
-        utilisations : actions/attest-build-provenance@v1
-        avec:
-          nom-sujet : ${{ env.REGISTRY }}/${{ env.IMAGE_NAME}}
-          sujet-digest : ${{ steps.push.outputs.digest }}
-          push-to-registry: vrai
-
+      - name: Build and push Docker image
+        id: push
+        uses: docker/build-push-action@f2a1d5e99d037542a71f64918e516c093c6f3fc4
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
